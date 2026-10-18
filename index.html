@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>全息光柵翻轉卡</title>
+  <title>全息光柵雙形態</title>
   <style>
     * {
       box-sizing: border-box;
@@ -19,345 +19,297 @@
       background: radial-gradient(circle at center, #0e111d 0%, #030408 100%);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang TC", sans-serif;
       display: flex;
-      flex-direction: column;
       justify-content: center;
       align-items: center;
       perspective: 1200px;
     }
 
-    /* 頂部操作與提示欄 */
-    .top-bar {
+    /* 頂部控制面板：整合模式切換與換圖功能 */
+    .header-bar {
       position: absolute;
-      top: 14px;
+      top: 16px;
+      z-index: 50;
       display: flex;
-      flex-direction: column;
       align-items: center;
-      gap: 8px;
-      z-index: 30;
-      width: 90%;
-      max-width: 480px;
-    }
-    .hint-text {
-      color: rgba(255, 255, 255, 0.85);
-      font-size: 13px;
-      letter-spacing: 2px;
-      text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
-      animation: pulse 2.5s infinite ease-in-out;
-    }
-    .size-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 11px;
-      color: #93c5fd;
-      background: rgba(30, 58, 138, 0.4);
-      border: 1px solid rgba(147, 197, 253, 0.35);
-      padding: 3px 10px;
-      border-radius: 999px;
-      letter-spacing: 0.5px;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 0.6; }
-      50% { opacity: 1; }
-    }
-
-    /* 自訂更換照片按鈕群 */
-    .upload-group {
-      display: flex;
-      gap: 8px;
-      background: rgba(20, 24, 40, 0.7);
+      gap: 6px;
+      background: rgba(15, 20, 35, 0.75);
       backdrop-filter: blur(12px);
-      padding: 6px 14px;
+      padding: 6px 12px;
       border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
     }
-    .upload-btn {
-      position: relative;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: #fff;
+    .ctl-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid transparent;
+      color: rgba(255, 255, 255, 0.85);
+      padding: 6px 12px;
       font-size: 12px;
-      padding: 5px 12px;
       border-radius: 999px;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.25s ease;
+      white-space: nowrap;
     }
-    .upload-btn:hover {
+    .ctl-btn.active {
       background: rgba(255, 255, 255, 0.25);
+      border-color: rgba(255, 255, 255, 0.4);
+      color: #fff;
+      font-weight: 600;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
     }
-    .upload-btn input[type="file"] {
-      position: absolute;
-      inset: 0;
-      opacity: 0;
-      cursor: pointer;
-      width: 100%;
-      height: 100%;
-    }
-
-    /* 3D 卡片外層容器：鎖定 9:16 直式比例 */
-    .card-container {
-      position: relative;
-      width: min(82vw, calc(68vh * (9 / 16)));
-      aspect-ratio: 9 / 16;
-      transform-style: preserve-3d;
-      will-change: transform;
-      transition: transform 0.08s ease-out;
-      border-radius: 24px;
-      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85),
-                  0 0 35px rgba(99, 102, 241, 0.3);
-      margin-top: 36px;
+    .divider {
+      width: 1px;
+      height: 16px;
+      background: rgba(255, 255, 255, 0.2);
+      margin: 0 2px;
     }
 
-    /* 卡片主體 */
-    .hologram-card {
+    /* 核心舞台容器 */
+    #cardContainer {
       position: relative;
-      width: 100%;
-      height: 100%;
-      border-radius: 24px;
       overflow: hidden;
       transform-style: preserve-3d;
-      border: 2px solid rgba(255, 255, 255, 0.2);
-      background-color: #0b0d19;
+      will-change: transform;
+      transition: width 0.3s ease, height 0.3s ease, border-radius 0.3s ease, transform 0.08s ease-out;
     }
 
-    /* 形態 A 圖層（深藍・馥夢） */
+    /* 模式 1：電腦 3D 懸浮卡片 */
+    .mode-3d-card {
+      width: min(84vw, calc(68vh * (9 / 16)));
+      aspect-ratio: 9 / 16;
+      border-radius: 24px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85),
+                  0 0 35px rgba(99, 102, 241, 0.3);
+    }
+
+    /* 模式 2：手機滿版貼屏模式 */
+    .mode-fullscreen {
+      width: 100vw !important;
+      height: 100vh !important;
+      aspect-ratio: auto !important;
+      border-radius: 0 !important;
+      border: none !important;
+      box-shadow: none !important;
+      transform: none !important;
+    }
+
+    /* 形態 A（深藍）圖層 */
     .layer-a {
       position: absolute;
       inset: 0;
+      width: 100%;
+      height: 100%;
       z-index: 1;
-      overflow: hidden;
     }
 
-    /* 形態 B 圖層（金耀・繁花） */
+    /* 形態 B（金耀）圖層 */
     .layer-b {
       position: absolute;
       inset: 0;
+      width: 100%;
+      height: 100%;
       z-index: 2;
-      overflow: hidden;
       opacity: 0;
+      will-change: opacity;
     }
 
-    .card-img {
+    .photo {
       width: 100%;
       height: 100%;
       object-fit: cover;
+      display: block;
       pointer-events: none;
     }
 
-    /* 全息彩虹折射層 */
+    /* 全息彩虹流光層 */
     .hologram-sheen {
       position: absolute;
-      inset: -50%;
-      width: 200%;
-      height: 200%;
+      inset: -100%;
+      width: 300%;
+      height: 300%;
       background: linear-gradient(
         115deg,
-        transparent 25%,
-        rgba(255, 0, 128, 0.22) 36%,
-        rgba(0, 240, 255, 0.28) 46%,
-        rgba(255, 255, 255, 0.45) 50%,
-        rgba(255, 215, 0, 0.3) 54%,
-        transparent 70%
+        transparent 30%,
+        rgba(255, 0, 150, 0.22) 42%,
+        rgba(0, 240, 255, 0.3) 49%,
+        rgba(255, 255, 255, 0.5) 51%,
+        rgba(255, 215, 0, 0.3) 55%,
+        transparent 65%
       );
       mix-blend-mode: color-dodge;
       pointer-events: none;
-      transform: translate3d(0, 0, 20px);
       z-index: 3;
       will-change: transform;
     }
 
-    /* 光柵垂直細條紋理 */
-    .lenticular-texture {
+    /* 光柵垂直紋理 */
+    .lenticular-lines {
       position: absolute;
       inset: 0;
       background: repeating-linear-gradient(
         90deg,
-        rgba(255, 255, 255, 0.04) 0px,
-        rgba(255, 255, 255, 0.04) 1px,
+        rgba(255, 255, 255, 0.035) 0px,
+        rgba(255, 255, 255, 0.035) 1px,
         transparent 1px,
         transparent 3px
       );
       pointer-events: none;
       z-index: 4;
     }
-
-    /* 底部操作欄 */
-    .bottom-controls {
-      position: absolute;
-      bottom: 20px;
-      display: flex;
-      gap: 10px;
-      z-index: 30;
-    }
-    .ctl-btn {
-      background: rgba(255, 255, 255, 0.12);
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      color: #fff;
-      padding: 7px 16px;
-      font-size: 13px;
-      border-radius: 999px;
-      backdrop-filter: blur(10px);
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    .ctl-btn:active {
-      transform: scale(0.96);
-      background: rgba(255, 255, 255, 0.25);
-    }
   </style>
 </head>
 <body>
-  <div class="top-bar">
-    <div class="hint-text" id="hint-text">📱 左右傾斜或滑動，即可切換雙形態</div>
-    <div class="size-badge">📐 建議上傳 9:16 直式照片，呈現最佳翻轉對齊效果</div>
-    <div class="upload-group">
-      <label class="upload-btn">
-        📷 更換形態 A 
-        <input type="file" id="inputA" accept="image/*" />
-      </label>
-      <label class="upload-btn">
-        📷 更換形態 B 
-        <input type="file" id="inputB" accept="image/*" />
-      </label>
-    </div>
+  <!-- 隱藏的檔案上傳輸入框 -->
+  <input type="file" id="uploadA" accept="image/*" style="display:none" />
+  <input type="file" id="uploadB" accept="image/*" style="display:none" />
+
+  <!-- 頂部功能列 -->
+  <div class="header-bar">
+    <button class="ctl-btn" id="btn-mode-phone">📱 Phone</button>
+    <button class="ctl-btn" id="btn-mode-card">💻 PC</button>
+    <div class="divider"></div>
+    <button class="ctl-btn" id="btn-upload-a">🖼️ 換形態A</button>
+    <button class="ctl-btn" id="btn-upload-b">🖼️ 換形態B</button>
   </div>
 
-  <div class="card-container" id="cardContainer">
-    <div class="hologram-card">
-      <!-- 形態 A 圖層：載入本地 blue.jpg -->
-      <div class="layer-a" id="layerA">
-        <img class="card-img" id="imgA" src="blue.jpg" alt="形態 A (藍夜)" />
-      </div>
-
-      <!-- 形態 B 圖層：載入本地 gold.jpg -->
-      <div class="layer-b" id="layerB">
-        <img class="card-img" id="imgB" src="gold.jpg" alt="形態 B (金耀)" />
-      </div>
-
-      <!-- 全息彩虹折射層與光柵細紋 -->
-      <div class="hologram-sheen" id="sheenLayer"></div>
-      <div class="lenticular-texture"></div>
+  <!-- 主舞台 -->
+  <div id="cardContainer" class="mode-3d-card">
+    <div class="layer-a">
+      <img class="photo" id="imgA" src="blue.jpg" alt="形態 A" />
     </div>
-  </div>
 
-  <div class="bottom-controls">
-    <button class="ctl-btn" id="btn-sensor">啟用手機翻轉感應</button>
-    <button class="ctl-btn" id="btn-auto">自動擺動展示</button>
+    <div class="layer-b" id="layerB">
+      <img class="photo" id="imgB" src="gold.jpg" alt="形態 B" />
+    </div>
+
+    <div class="hologram-sheen" id="sheen"></div>
+    <div class="lenticular-lines"></div>
   </div>
 
   <script>
     const card = document.getElementById('cardContainer');
-    const layerA = document.getElementById('layerA');
     const layerB = document.getElementById('layerB');
+    const sheen = document.getElementById('sheen');
     const imgA = document.getElementById('imgA');
     const imgB = document.getElementById('imgB');
-    const inputA = document.getElementById('inputA');
-    const inputB = document.getElementById('inputB');
-    const sheenLayer = document.getElementById('sheenLayer');
-    const hintText = document.getElementById('hint-text');
-    const btnSensor = document.getElementById('btn-sensor');
-    const btnAuto = document.getElementById('btn-auto');
 
-    let autoPlay = false;
-    let autoPlayAngle = 0;
+    const btnModePhone = document.getElementById('btn-mode-phone');
+    const btnModeCard = document.getElementById('btn-mode-card');
+    const btnUploadA = document.getElementById('btn-upload-a');
+    const btnUploadB = document.getElementById('btn-upload-b');
+    const uploadA = document.getElementById('uploadA');
+    const uploadB = document.getElementById('uploadB');
 
-    // 1. 照片本地替換 (FileReader API)
-    function handleImageUpload(inputElement, targetImg) {
-      inputElement.addEventListener('change', (e) => {
-        const file = e.target.files && e.target.files[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = (evt) => {
-            targetImg.src = evt.target.result;
-          };
-          reader.readAsDataURL(file);
-        }
-      });
+    // 依設備預設模式
+    const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    let currentMode = isMobileDevice ? 'fullscreen' : 'card';
+
+    function setMode(mode) {
+      currentMode = mode;
+      if (mode === 'fullscreen') {
+        card.className = 'mode-fullscreen';
+        btnModePhone.classList.add('active');
+        btnModeCard.classList.remove('active');
+      } else {
+        card.className = 'mode-3d-card';
+        btnModeCard.classList.add('active');
+        btnModePhone.classList.remove('active');
+      }
+      applyTransform(0, 0);
     }
-    handleImageUpload(inputA, imgA);
-    handleImageUpload(inputB, imgB);
 
-    // 2. 核心 3D 姿態與光柵交叉溶解
-    function applyTransform(tiltX, tiltY) {
-      const clampedX = Math.max(-35, Math.min(35, tiltX));
-      const clampedY = Math.max(-25, Math.min(25, tiltY));
+    btnModePhone.addEventListener('click', () => setMode('fullscreen'));
+    btnModeCard.addEventListener('click', () => setMode('card'));
 
-      card.style.transform = `rotateY(${clampedX * 0.9}deg) rotateX(${-clampedY * 0.7}deg)`;
+    // 自訂上傳圖片功能 (本地預覽，不上傳雲端伺服器)
+    btnUploadA.addEventListener('click', () => uploadA.click());
+    btnUploadB.addEventListener('click', () => uploadB.click());
 
-      // 翻轉角度映射過渡
+    uploadA.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (evt) => { imgA.src = evt.target.result; };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    uploadB.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (evt) => { imgB.src = evt.target.result; };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // 姿態與光柵過渡
+    function applyTransform(tiltX, tiltY = 0) {
+      const clampedX = Math.max(-30, Math.min(30, tiltX));
+      const clampedY = Math.max(-20, Math.min(20, tiltY));
+
+      if (currentMode === 'card') {
+        card.style.transform = `rotateY(${clampedX * 0.9}deg) rotateX(${-clampedY * 0.7}deg)`;
+      } else {
+        card.style.transform = 'none';
+      }
+
+      // 形態 A/B 漸變權重
       const blend = Math.max(0, Math.min(1, (clampedX + 18) / 36));
       layerB.style.opacity = blend.toFixed(3);
-      layerA.style.opacity = (1 - blend).toFixed(3);
 
-      // 全息光斑位移
-      const sheenOffset = (blend - 0.5) * 80;
-      sheenLayer.style.transform = `translate3d(${sheenOffset}%, 0, 20px)`;
+      // 全息彩虹流光位移
+      const sheenOffset = (blend - 0.5) * 120;
+      sheen.style.transform = `translate3d(${sheenOffset}%, 0, 0)`;
     }
 
-    // 3. 陀螺儀支援
+    // 陀螺儀監聽
     function handleOrientation(e) {
-      if (autoPlay) return;
       const gamma = e.gamma || 0;
       const beta = e.beta || 0;
       applyTransform(gamma, beta - 45);
     }
 
-    btnSensor.addEventListener('click', () => {
+    // 自動偵測或輕觸啟動陀螺儀
+    let sensorStarted = false;
+    function startSensor() {
+      if (sensorStarted) return;
       if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
         DeviceOrientationEvent.requestPermission()
           .then(state => {
             if (state === 'granted') {
               window.addEventListener('deviceorientation', handleOrientation);
-              btnSensor.style.display = 'none';
-              hintText.innerText = '✨ 陀螺儀已連動，轉動手機即可切換相片 ✨';
-            } else {
-              alert('未取得感測器授權，仍可透過滑鼠或滑動體驗！');
+              sensorStarted = true;
             }
           })
           .catch(console.error);
       } else {
         window.addEventListener('deviceorientation', handleOrientation);
-        btnSensor.style.display = 'none';
-        hintText.innerText = '✨ 陀螺儀已啟動，轉動手機即可切換相片 ✨';
+        sensorStarted = true;
       }
-    });
+    }
 
-    // 4. 滑鼠與觸控拖曳
-    function handlePointerMove(e) {
-      if (autoPlay) return;
-      const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-      const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-      if (clientX === undefined) return;
+    window.addEventListener('touchstart', startSensor, { once: true });
+    window.addEventListener('click', startSensor, { once: true });
+    startSensor();
 
-      const normX = (clientX / window.innerWidth) - 0.5;
-      const normY = (clientY / window.innerHeight) - 0.5;
+    // 電腦滑鼠與觸控拖曳監聽
+    window.addEventListener('mousemove', (e) => {
+      const normX = (e.clientX / window.innerWidth) - 0.5;
+      const normY = (e.clientY / window.innerHeight) - 0.5;
       applyTransform(normX * 60, normY * 40);
-    }
-
-    window.addEventListener('mousemove', handlePointerMove);
-    window.addEventListener('touchmove', handlePointerMove, { passive: true });
-
-    // 5. 自動擺動展示
-    btnAuto.addEventListener('click', () => {
-      autoPlay = !autoPlay;
-      btnAuto.innerText = autoPlay ? '停止自動展示' : '自動擺動展示';
     });
 
-    function loopAutoPlay() {
-      if (autoPlay) {
-        autoPlayAngle += 0.035;
-        const tilt = Math.sin(autoPlayAngle) * 25;
-        applyTransform(tilt, Math.cos(autoPlayAngle * 0.5) * 8);
-      }
-      requestAnimationFrame(loopAutoPlay);
-    }
-    loopAutoPlay();
+    window.addEventListener('touchmove', (e) => {
+      const touch = e.touches[0];
+      const normX = (touch.clientX / window.innerWidth) - 0.5;
+      const normY = (touch.clientY / window.innerHeight) - 0.5;
+      applyTransform(normX * 60, normY * 40);
+    }, { passive: true });
 
-    applyTransform(0, 0);
+    // 初始化模式
+    setMode(currentMode);
   </script>
 </body>
 </html>
