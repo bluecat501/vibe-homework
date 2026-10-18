@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#000000" />
   
-  <title>全息雙形態卡片 </title>
+  <title>全息光柵雙形態</title>
   <style>
     * {
       box-sizing: border-box;
@@ -21,7 +21,7 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background-color: #000;
+      background: radial-gradient(circle at center, #0e111d 0%, #030408 100%);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang TC", sans-serif;
       display: flex;
       justify-content: center;
@@ -29,7 +29,7 @@
       perspective: 1200px;
     }
 
-    /* 頂部功能列：加入向上平滑淡出（-30px 偏移與透明度 0） */
+    /* 頂部選單：3 秒自動平滑淡出 */
     .header-bar {
       position: absolute;
       top: calc(env(safe-area-inset-top, 0px) + 12px);
@@ -47,7 +47,6 @@
       overflow-x: auto;
       scrollbar-width: none;
       
-      /* 動畫過渡 */
       opacity: 1;
       transform: translateY(0);
       transition: opacity 0.45s cubic-bezier(0.25, 1, 0.5, 1), 
@@ -59,7 +58,6 @@
       display: none;
     }
 
-    /* 隱藏狀態 */
     .header-bar.fade-hidden {
       opacity: 0 !important;
       transform: translateY(-30px) !important;
@@ -92,52 +90,84 @@
       flex-shrink: 0;
     }
 
-    /* 核心舞台容器 */
+    /* 3D 舞台容器外框 */
     #cardContainer {
       position: relative;
       overflow: hidden;
       transform-style: preserve-3d;
       will-change: transform;
-      transition: width 0.3s ease, height 0.3s ease, border-radius 0.3s ease, transform 0.08s ease-out;
+      transition: width 0.3s ease, height 0.3s ease, border-radius 0.3s ease;
     }
 
-    /* 電腦 3D 卡片 */
-    .mode-3d-card {
-      width: min(84vw, calc(68vh * (9 / 16)));
+    /* 1. PC 直立卡片 (9:16) */
+    .mode-card-portrait {
+      width: min(84vw, calc(72vh * (9 / 16)));
       aspect-ratio: 9 / 16;
-      border-radius: 24px;
+      border-radius: 22px;
       border: 2px solid rgba(255, 255, 255, 0.2);
       box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85),
                   0 0 35px rgba(99, 102, 241, 0.3);
     }
 
-    /* 手機滿版貼屏模式 */
-    .mode-fullscreen {
+    /* 2. PC 橫擺卡片 (保持原始比例旋轉 90 度，不裁切原圖) */
+    .mode-card-landscape {
+      height: min(84vw, calc(72vh * (9 / 16)));
+      width: calc(min(84vw, calc(72vh * (9 / 16))) * (16 / 9));
+      aspect-ratio: 16 / 9;
+      border-radius: 22px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85),
+                  0 0 35px rgba(99, 102, 241, 0.3);
+    }
+
+    /* 3. 手機版 直向滿屏貼合 */
+    .mode-phone-portrait {
       width: 100vw !important;
       height: 100vh !important;
       height: 100dvh !important;
-      aspect-ratio: auto !important;
       border-radius: 0 !important;
       border: none !important;
       box-shadow: none !important;
       transform: none !important;
     }
 
-    /* 形態 A（深藍）圖層 */
-    .layer-a {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 1;
+    /* 4. 手機版 橫向滿屏貼合（強制轉 90 度鋪滿整隻手機） */
+    .mode-phone-landscape {
+      position: fixed !important;
+      top: 50% !important;
+      left: 50% !important;
+      width: 100vh !important;
+      width: 100dvh !important;
+      height: 100vw !important;
+      border-radius: 0 !important;
+      border: none !important;
+      box-shadow: none !important;
+      transform: translate(-50%, -50%) rotate(90deg) !important;
     }
 
-    /* 形態 B（金耀）圖層 */
-    .layer-b {
+    /* 內部圖層容器 */
+    .inner-wrapper {
       position: absolute;
       inset: 0;
       width: 100%;
       height: 100%;
+    }
+
+    /* PC 橫擺時，內部圖像旋轉 90 度以完整容納直式原畫 */
+    .mode-card-landscape .inner-wrapper {
+      width: 100%;
+      height: 100%;
+      transform-origin: center center;
+    }
+
+    .layer-a, .layer-b {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+    .layer-a { z-index: 1; }
+    .layer-b {
       z-index: 2;
       opacity: 0;
       will-change: opacity;
@@ -149,6 +179,12 @@
       object-fit: cover;
       display: block;
       pointer-events: none;
+    }
+
+    /* PC 橫向時照片改為 contain 或旋轉對齊，避免裁切大圖 */
+    .mode-card-landscape .photo {
+      object-fit: contain;
+      transform: rotate(90deg) scale(1.78);
     }
 
     /* 全息彩虹流光層 */
@@ -172,7 +208,7 @@
       will-change: transform;
     }
 
-    /* 光柵垂直紋理 */
+    /* 光柵線條細紋 */
     .lenticular-lines {
       position: absolute;
       inset: 0;
@@ -189,32 +225,33 @@
   </style>
 </head>
 <body>
-  <!-- 隱藏的本地圖片輸入框 -->
   <input type="file" id="uploadA" accept="image/*" style="display:none" />
   <input type="file" id="uploadB" accept="image/*" style="display:none" />
 
   <!-- 頂部功能列 -->
   <div class="header-bar" id="headerBar">
-    <button class="ctl-btn" id="btn-mode-phone">📱 phone</button>
-    <button class="ctl-btn" id="btn-mode-card">💻 pc</button>
-    <button class="ctl-btn" id="btn-fullscreen">⛶ 全螢幕</button>
+    <button class="ctl-btn" id="btn-mode-phone">📱 手機版</button>
+    <button class="ctl-btn" id="btn-mode-card">💻 PC</button>
+    <button class="ctl-btn" id="btn-orientation">🔄 轉橫向</button>
     <div class="divider"></div>
     <button class="ctl-btn" id="btn-upload-a">🖼️ 換圖A</button>
     <button class="ctl-btn" id="btn-upload-b">🖼️ 換圖B</button>
   </div>
 
   <!-- 主舞台 -->
-  <div id="cardContainer" class="mode-3d-card">
-    <div class="layer-a">
-      <img class="photo" id="imgA" src="blue.jpg" alt="形態 A" />
-    </div>
+  <div id="cardContainer" class="mode-card-portrait">
+    <div class="inner-wrapper">
+      <div class="layer-a">
+        <img class="photo" id="imgA" src="blue.jpg" alt="形態 A" />
+      </div>
 
-    <div class="layer-b" id="layerB">
-      <img class="photo" id="imgB" src="gold.jpg" alt="形態 B" />
-    </div>
+      <div class="layer-b" id="layerB">
+        <img class="photo" id="imgB" src="gold.jpg" alt="形態 B" />
+      </div>
 
-    <div class="hologram-sheen" id="sheen"></div>
-    <div class="lenticular-lines"></div>
+      <div class="hologram-sheen" id="sheen"></div>
+      <div class="lenticular-lines"></div>
+    </div>
   </div>
 
   <script>
@@ -227,58 +264,60 @@
 
     const btnModePhone = document.getElementById('btn-mode-phone');
     const btnModeCard = document.getElementById('btn-mode-card');
-    const btnFullscreen = document.getElementById('btn-fullscreen');
+    const btnOrientation = document.getElementById('btn-orientation');
     const btnUploadA = document.getElementById('btn-upload-a');
     const btnUploadB = document.getElementById('btn-upload-b');
     const uploadA = document.getElementById('uploadA');
     const uploadB = document.getElementById('uploadB');
 
     const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    let currentMode = isMobileDevice ? 'fullscreen' : 'card';
+    let currentDevice = isMobileDevice ? 'phone' : 'card';
+    let isLandscape = false;
 
-    function setMode(mode) {
-      currentMode = mode;
-      if (mode === 'fullscreen') {
-        card.className = 'mode-fullscreen';
+    function updateView() {
+      if (currentDevice === 'phone') {
         btnModePhone.classList.add('active');
         btnModeCard.classList.remove('active');
+        if (isLandscape) {
+          card.className = 'mode-phone-landscape';
+          btnOrientation.innerText = '🔄 轉直向';
+        } else {
+          card.className = 'mode-phone-portrait';
+          btnOrientation.innerText = '🔄 轉橫向';
+        }
       } else {
-        card.className = 'mode-3d-card';
         btnModeCard.classList.add('active');
         btnModePhone.classList.remove('active');
+        if (isLandscape) {
+          card.className = 'mode-card-landscape';
+          btnOrientation.innerText = '🔄 轉直卡';
+        } else {
+          card.className = 'mode-card-portrait';
+          btnOrientation.innerText = '🔄 轉橫卡';
+        }
       }
+
       applyTransform(0, 0);
-      showAndResetTimer(); // 切換模式時，重置隱藏計時
+      showAndResetTimer();
     }
 
-    btnModePhone.addEventListener('click', () => setMode('fullscreen'));
-    btnModeCard.addEventListener('click', () => setMode('card'));
-
-    // 全螢幕
-    btnFullscreen.addEventListener('click', (e) => {
-      e.stopPropagation(); // 避免點擊按鈕時直接觸發全螢幕切換導致選單立即關閉
-      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-        const docEl = document.documentElement;
-        if (docEl.requestFullscreen) {
-          docEl.requestFullscreen().catch(console.error);
-        } else if (docEl.webkitRequestFullscreen) {
-          docEl.webkitRequestFullscreen();
-        }
-      } else {
-        if (document.exitFullscreen) {
-          document.exitFullscreen().catch(console.error);
-        } else if (document.webkitExitFullscreen) {
-          document.webkitExitFullscreen();
-        }
-      }
-      showAndResetTimer();
+    btnModePhone.addEventListener('click', () => {
+      currentDevice = 'phone';
+      updateView();
     });
 
-    document.addEventListener('fullscreenchange', () => {
-      btnFullscreen.innerText = document.fullscreenElement ? '🗗 退出全螢幕' : '⛶ 全螢幕';
+    btnModeCard.addEventListener('click', () => {
+      currentDevice = 'card';
+      updateView();
     });
 
-    // 換圖
+    btnOrientation.addEventListener('click', (e) => {
+      e.stopPropagation();
+      isLandscape = !isLandscape;
+      updateView();
+    });
+
+    // 換圖功能
     btnUploadA.addEventListener('click', (e) => { e.stopPropagation(); uploadA.click(); });
     btnUploadB.addEventListener('click', (e) => { e.stopPropagation(); uploadB.click(); });
 
@@ -302,66 +341,62 @@
       showAndResetTimer();
     });
 
-    // 3秒自動隱藏與點擊顯現邏輯
+    // 3 秒無操作自動隱藏與喚醒
     let inactiveTimer = null;
-    let isMenuVisible = true;
-
     function hideMenuBar() {
       headerBar.classList.add('fade-hidden');
-      isMenuVisible = false;
     }
 
     function showAndResetTimer() {
       headerBar.classList.remove('fade-hidden');
-      isMenuVisible = true;
       clearTimeout(inactiveTimer);
-      // 3000 毫秒 = 3 秒
       inactiveTimer = setTimeout(hideMenuBar, 3000);
     }
 
-    // 當使用者輕觸或點擊螢幕任何一處，立刻喚醒並重新倒數 3 秒
     window.addEventListener('click', showAndResetTimer);
     window.addEventListener('touchstart', showAndResetTimer, { passive: true });
-
-    // 初始化自動倒數
     showAndResetTimer();
 
-    // 姿態運算
+    // 3D 姿態與光柵過渡運算
     let lastTiltX = 0;
     function applyTransform(tiltX, tiltY = 0) {
       const clampedX = Math.max(-30, Math.min(30, tiltX));
       const clampedY = Math.max(-20, Math.min(20, tiltY));
 
-      if (currentMode === 'card') {
+      if (currentDevice === 'card') {
+        // 電腦端 3D 卡片旋轉
         card.style.transform = `rotateY(${clampedX * 0.9}deg) rotateX(${-clampedY * 0.7}deg)`;
+      } else if (isLandscape) {
+        // 手機端橫向滿屏保持絕對居中旋轉
+        card.style.transform = `translate(-50%, -50%) rotate(90deg)`;
       } else {
         card.style.transform = 'none';
       }
 
+      // 形態 A/B 漸變
       const blend = Math.max(0, Math.min(1, (clampedX + 18) / 36));
       layerB.style.opacity = blend.toFixed(3);
 
+      // 全息彩虹流光位移
       const sheenOffset = (blend - 0.5) * 120;
       sheen.style.transform = `translate3d(${sheenOffset}%, 0, 0)`;
 
-      // 智慧偵測：如果使用者有在轉動手機（動作差值大於 1 度），自動延長顯示時間，不急著隱藏
       if (Math.abs(tiltX - lastTiltX) > 1.2) {
-        if (!isMenuVisible) {
-          showAndResetTimer();
-        } else {
-          // 在轉動時，不斷重置 3 秒計時
-          clearTimeout(inactiveTimer);
-          inactiveTimer = setTimeout(hideMenuBar, 3000);
-        }
+        clearTimeout(inactiveTimer);
+        inactiveTimer = setTimeout(hideMenuBar, 3000);
       }
       lastTiltX = tiltX;
     }
 
-    // 陀螺儀
+    // 陀螺儀監聽
     function handleOrientation(e) {
-      const gamma = e.gamma || 0;
-      const beta = e.beta || 0;
-      applyTransform(gamma, beta - 45);
+      let angle = 0;
+      if (currentDevice === 'phone' && isLandscape) {
+        angle = (e.beta || 0) - 30;
+      } else {
+        angle = e.gamma || 0;
+      }
+      applyTransform(angle, 0);
     }
 
     let sensorStarted = false;
@@ -390,18 +425,17 @@
       const normX = (e.clientX / window.innerWidth) - 0.5;
       const normY = (e.clientY / window.innerHeight) - 0.5;
       applyTransform(normX * 60, normY * 40);
-      showAndResetTimer(); // 滑鼠移動時也保持喚醒
+      showAndResetTimer();
     });
 
     window.addEventListener('touchmove', (e) => {
       const touch = e.touches[0];
       const normX = (touch.clientX / window.innerWidth) - 0.5;
-      const normY = (touch.clientY / window.innerHeight) - 0.5;
-      applyTransform(normX * 60, normY * 40);
-      showAndResetTimer(); // 手指觸控滑動時也保持喚醒
+      applyTransform(normX * 60, 0);
+      showAndResetTimer();
     }, { passive: true });
 
-    setMode(currentMode);
+    updateView();
   </script>
 </body>
 </html>
