@@ -3,11 +3,6 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="theme-color" content="#000000" />
-
   <title>全息光柵雙形態</title>
   <style>
     * {
@@ -88,7 +83,7 @@
       flex-shrink: 0;
     }
 
-    /* 3D 舞台卡片容器 */
+    /* 主舞台卡片容器 */
     #cardContainer {
       position: absolute;
       overflow: hidden;
@@ -106,7 +101,7 @@
                   0 0 35px rgba(99, 102, 241, 0.3);
     }
 
-    /* 2. PC 3D 橫擺卡片 (保持原始比例旋轉 90 度，不裁切) */
+    /* 2. PC 3D 橫擺卡片 (保持原始比例旋轉 90 度橫躺) */
     .mode-card-landscape {
       width: calc(min(84vw, calc(72vh * (9 / 16))) * (16 / 9));
       height: min(84vw, calc(72vh * (9 / 16)));
@@ -116,8 +111,10 @@
                   0 0 35px rgba(99, 102, 241, 0.3);
     }
 
-    /* 3. 手機版 直向貼屏 (100% 螢幕滿版) */
+    /* 3. 手機版 直向貼屏（核心修改：絕對貼齊底部，填滿整個螢幕，消除下黑邊） */
     .mode-phone-portrait {
+      left: 0;
+      bottom: 0;
       width: 100vw;
       height: 100vh;
       height: 100dvh;
@@ -126,7 +123,7 @@
       box-shadow: none;
     }
 
-    /* 4. 手機版 橫向滿版 (強制橫屏：寬高互換旋轉 90 度，徹底鋪滿整隻手機) */
+    /* 4. 手機版 橫向（單純鋪滿螢幕，不做多餘的手遊設定） */
     .mode-phone-landscape {
       top: 50%;
       left: 50%;
@@ -154,7 +151,9 @@
     .photo {
       width: 100%;
       height: 100%;
+      /* 改為 bottom center，確保人物與底部邊框完全切齊手機底緣 */
       object-fit: cover;
+      object-position: bottom center;
       display: block;
       pointer-events: none;
     }
@@ -162,6 +161,7 @@
     /* PC 橫向時內部圖片旋轉適配 */
     .mode-card-landscape .photo {
       object-fit: contain;
+      object-position: center center;
       transform: rotate(90deg) scale(1.78);
     }
 
@@ -208,7 +208,7 @@
 
   <!-- 頂部功能列 -->
   <div class="header-bar" id="headerBar">
-    <button class="ctl-btn" id="btn-mode-phone">📱 手機版</button>
+    <button class="ctl-btn" id="btn-mode-phone">📱Phone</button>
     <button class="ctl-btn" id="btn-mode-card">💻 PC</button>
     <button class="ctl-btn" id="btn-orientation">🔄 轉橫向</button>
     <div class="divider"></div>
@@ -339,11 +339,9 @@
       const clampedX = Math.max(-30, Math.min(30, tiltX));
       const clampedY = Math.max(-20, Math.min(20, tiltY));
 
-      // 只有在 PC 模式下才動態注入 transform 3D 旋轉
       if (currentDevice === 'card') {
         card.style.transform = `rotateY(${clampedX * 0.9}deg) rotateX(${-clampedY * 0.7}deg)`;
       } else if (isLandscape) {
-        // 手機橫向固定 CSS 旋轉，JS 絕不覆寫 transform，防止截斷跑版！
         card.style.transform = `translate(-50%, -50%) rotate(90deg)`;
       } else {
         card.style.transform = 'none';
@@ -368,7 +366,6 @@
     function handleOrientation(e) {
       let angle = 0;
       if (currentDevice === 'phone' && isLandscape) {
-        // 橫屏模式下主要由 beta 控制
         angle = (e.beta || 0) - 30;
       } else {
         angle = e.gamma || 0;
