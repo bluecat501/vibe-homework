@@ -4,10 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   
+  <!-- 宣告為獨立 App 並鎖定為橫屏手遊模式 (Landscape Only) -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#000000" />
-  
+  <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22HoloCard%22%2C%22short_name%22%3A%22HoloCard%22%2C%22display%22%3A%22standalone%22%2C%22orientation%22%3A%22landscape%22%7D" />
+
   <title>全息光柵雙形態</title>
   <style>
     * {
@@ -29,7 +31,7 @@
       perspective: 1200px;
     }
 
-    /* 頂部選單：3 秒自動平滑淡出 */
+    /* 頂部選單：3 秒自動淡出 */
     .header-bar {
       position: absolute;
       top: calc(env(safe-area-inset-top, 0px) + 12px);
@@ -90,7 +92,7 @@
       flex-shrink: 0;
     }
 
-    /* 3D 舞台容器外框 */
+    /* 3D 舞台卡片容器 */
     #cardContainer {
       position: relative;
       overflow: hidden;
@@ -99,7 +101,7 @@
       transition: width 0.3s ease, height 0.3s ease, border-radius 0.3s ease;
     }
 
-    /* 1. PC 直立卡片 (9:16) */
+    /* 1. PC 3D 直立卡片 (9:16) */
     .mode-card-portrait {
       width: min(84vw, calc(72vh * (9 / 16)));
       aspect-ratio: 9 / 16;
@@ -109,7 +111,7 @@
                   0 0 35px rgba(99, 102, 241, 0.3);
     }
 
-    /* 2. PC 橫擺卡片 (保持原始比例旋轉 90 度，不裁切原圖) */
+    /* 2. PC 3D 橫擺卡片 (保持原始比例旋轉 90 度橫躺，不切邊) */
     .mode-card-landscape {
       height: min(84vw, calc(72vh * (9 / 16)));
       width: calc(min(84vw, calc(72vh * (9 / 16))) * (16 / 9));
@@ -120,7 +122,7 @@
                   0 0 35px rgba(99, 102, 241, 0.3);
     }
 
-    /* 3. 手機版 直向滿屏貼合 */
+    /* 3. 手機版 直向貼屏 */
     .mode-phone-portrait {
       width: 100vw !important;
       height: 100vh !important;
@@ -131,33 +133,15 @@
       transform: none !important;
     }
 
-    /* 4. 手機版 橫向滿屏貼合（強制轉 90 度鋪滿整隻手機） */
-    .mode-phone-landscape {
+    /* 4. 手機版 強制手遊級橫向鎖定（雙層自適應：不論 iOS 是直是橫，永遠維持橫向滿屏） */
+    .mode-phone-landscape-locked {
       position: fixed !important;
-      top: 50% !important;
-      left: 50% !important;
-      width: 100vh !important;
-      width: 100dvh !important;
-      height: 100vw !important;
+      inset: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
       border-radius: 0 !important;
       border: none !important;
       box-shadow: none !important;
-      transform: translate(-50%, -50%) rotate(90deg) !important;
-    }
-
-    /* 內部圖層容器 */
-    .inner-wrapper {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-    }
-
-    /* PC 橫擺時，內部圖像旋轉 90 度以完整容納直式原畫 */
-    .mode-card-landscape .inner-wrapper {
-      width: 100%;
-      height: 100%;
-      transform-origin: center center;
     }
 
     .layer-a, .layer-b {
@@ -181,7 +165,7 @@
       pointer-events: none;
     }
 
-    /* PC 橫向時照片改為 contain 或旋轉對齊，避免裁切大圖 */
+    /* PC 橫擺卡片時內部旋轉以完整容納直式原畫 */
     .mode-card-landscape .photo {
       object-fit: contain;
       transform: rotate(90deg) scale(1.78);
@@ -240,18 +224,16 @@
 
   <!-- 主舞台 -->
   <div id="cardContainer" class="mode-card-portrait">
-    <div class="inner-wrapper">
-      <div class="layer-a">
-        <img class="photo" id="imgA" src="blue.jpg" alt="形態 A" />
-      </div>
-
-      <div class="layer-b" id="layerB">
-        <img class="photo" id="imgB" src="gold.jpg" alt="形態 B" />
-      </div>
-
-      <div class="hologram-sheen" id="sheen"></div>
-      <div class="lenticular-lines"></div>
+    <div class="layer-a">
+      <img class="photo" id="imgA" src="blue.jpg" alt="形態 A" />
     </div>
+
+    <div class="layer-b" id="layerB">
+      <img class="photo" id="imgB" src="gold.jpg" alt="形態 B" />
+    </div>
+
+    <div class="hologram-sheen" id="sheen"></div>
+    <div class="lenticular-lines"></div>
   </div>
 
   <script>
@@ -279,7 +261,7 @@
         btnModePhone.classList.add('active');
         btnModeCard.classList.remove('active');
         if (isLandscape) {
-          card.className = 'mode-phone-landscape';
+          card.className = 'mode-phone-landscape-locked';
           btnOrientation.innerText = '🔄 轉直向';
         } else {
           card.className = 'mode-phone-portrait';
@@ -357,19 +339,36 @@
     window.addEventListener('touchstart', showAndResetTimer, { passive: true });
     showAndResetTimer();
 
-    // 3D 姿態與光柵過渡運算
+    // 姿態運算
     let lastTiltX = 0;
     function applyTransform(tiltX, tiltY = 0) {
       const clampedX = Math.max(-30, Math.min(30, tiltX));
       const clampedY = Math.max(-20, Math.min(20, tiltY));
 
       if (currentDevice === 'card') {
-        // 電腦端 3D 卡片旋轉
         card.style.transform = `rotateY(${clampedX * 0.9}deg) rotateX(${-clampedY * 0.7}deg)`;
       } else if (isLandscape) {
-        // 手機端橫向滿屏保持絕對居中旋轉
-        card.style.transform = `translate(-50%, -50%) rotate(90deg)`;
+        // 手遊鎖定橫屏核心演算法：
+        // 偵測目前 iOS 視窗長寬。如果系統是在直向狀態，我們就透過 CSS 逆轉 90 度鋪滿；
+        // 如果系統已經被轉橫了，就自然填滿。這樣不管 iOS 系統怎麼跳，在使用者眼中「永遠都是橫的」！
+        const isSystemPortrait = window.innerHeight > window.innerWidth;
+        if (isSystemPortrait) {
+          card.style.position = 'fixed';
+          card.style.top = '50%';
+          card.style.left = '50%';
+          card.style.width = '100vh';
+          card.style.height = '100vw';
+          card.style.transform = 'translate(-50%, -50%) rotate(90deg)';
+        } else {
+          card.style.position = 'absolute';
+          card.style.top = '0';
+          card.style.left = '0';
+          card.style.width = '100vw';
+          card.style.height = '100vh';
+          card.style.transform = 'none';
+        }
       } else {
+        card.style.position = 'relative';
         card.style.transform = 'none';
       }
 
@@ -388,11 +387,17 @@
       lastTiltX = tiltX;
     }
 
-    // 陀螺儀監聽
+    // 監聽螢幕變動（防止跳轉）
+    window.addEventListener('resize', () => applyTransform(0, 0));
+    window.addEventListener('orientationchange', () => applyTransform(0, 0));
+
+    // 陀螺儀
     function handleOrientation(e) {
       let angle = 0;
       if (currentDevice === 'phone' && isLandscape) {
-        angle = (e.beta || 0) - 30;
+        // 橫屏模式下主要由 beta 或 gamma 換算傾斜
+        const isSystemPortrait = window.innerHeight > window.innerWidth;
+        angle = isSystemPortrait ? ((e.beta || 0) - 30) : (e.gamma || 0);
       } else {
         angle = e.gamma || 0;
       }
