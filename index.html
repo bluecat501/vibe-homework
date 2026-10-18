@@ -4,11 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   
-  <!-- 宣告為獨立 App 並鎖定為橫屏手遊模式 (Landscape Only) -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#000000" />
-  <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22HoloCard%22%2C%22short_name%22%3A%22HoloCard%22%2C%22display%22%3A%22standalone%22%2C%22orientation%22%3A%22landscape%22%7D" />
 
   <title>全息光柵雙形態</title>
   <style>
@@ -23,7 +21,7 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: radial-gradient(circle at center, #0e111d 0%, #030408 100%);
+      background-color: #000;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang TC", sans-serif;
       display: flex;
       justify-content: center;
@@ -39,7 +37,7 @@
       display: flex;
       align-items: center;
       gap: 6px;
-      background: rgba(15, 20, 35, 0.72);
+      background: rgba(15, 20, 35, 0.75);
       backdrop-filter: blur(16px);
       padding: 6px 14px;
       border-radius: 999px;
@@ -51,9 +49,7 @@
       
       opacity: 1;
       transform: translateY(0);
-      transition: opacity 0.45s cubic-bezier(0.25, 1, 0.5, 1), 
-                  transform 0.45s cubic-bezier(0.25, 1, 0.5, 1),
-                  visibility 0.45s;
+      transition: opacity 0.4s ease, transform 0.4s ease, visibility 0.4s;
       visibility: visible;
     }
     .header-bar::-webkit-scrollbar {
@@ -94,54 +90,52 @@
 
     /* 3D 舞台卡片容器 */
     #cardContainer {
-      position: relative;
+      position: absolute;
       overflow: hidden;
       transform-style: preserve-3d;
       will-change: transform;
-      transition: width 0.3s ease, height 0.3s ease, border-radius 0.3s ease;
     }
 
     /* 1. PC 3D 直立卡片 (9:16) */
     .mode-card-portrait {
       width: min(84vw, calc(72vh * (9 / 16)));
-      aspect-ratio: 9 / 16;
+      height: calc(min(84vw, calc(72vh * (9 / 16))) * (16 / 9));
       border-radius: 22px;
       border: 2px solid rgba(255, 255, 255, 0.2);
       box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85),
                   0 0 35px rgba(99, 102, 241, 0.3);
     }
 
-    /* 2. PC 3D 橫擺卡片 (保持原始比例旋轉 90 度橫躺，不切邊) */
+    /* 2. PC 3D 橫擺卡片 (保持原始比例旋轉 90 度，不裁切) */
     .mode-card-landscape {
-      height: min(84vw, calc(72vh * (9 / 16)));
       width: calc(min(84vw, calc(72vh * (9 / 16))) * (16 / 9));
-      aspect-ratio: 16 / 9;
+      height: min(84vw, calc(72vh * (9 / 16)));
       border-radius: 22px;
       border: 2px solid rgba(255, 255, 255, 0.2);
       box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85),
                   0 0 35px rgba(99, 102, 241, 0.3);
     }
 
-    /* 3. 手機版 直向貼屏 */
+    /* 3. 手機版 直向貼屏 (100% 螢幕滿版) */
     .mode-phone-portrait {
-      width: 100vw !important;
-      height: 100vh !important;
-      height: 100dvh !important;
-      border-radius: 0 !important;
-      border: none !important;
-      box-shadow: none !important;
-      transform: none !important;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      border-radius: 0;
+      border: none;
+      box-shadow: none;
     }
 
-    /* 4. 手機版 強制手遊級橫向鎖定（雙層自適應：不論 iOS 是直是橫，永遠維持橫向滿屏） */
-    .mode-phone-landscape-locked {
-      position: fixed !important;
-      inset: 0 !important;
-      width: 100% !important;
-      height: 100% !important;
-      border-radius: 0 !important;
-      border: none !important;
-      box-shadow: none !important;
+    /* 4. 手機版 橫向滿版 (強制橫屏：寬高互換旋轉 90 度，徹底鋪滿整隻手機) */
+    .mode-phone-landscape {
+      top: 50%;
+      left: 50%;
+      width: 100dvh;
+      height: 100dvw;
+      transform: translate(-50%, -50%) rotate(90deg);
+      border-radius: 0;
+      border: none;
+      box-shadow: none;
     }
 
     .layer-a, .layer-b {
@@ -165,7 +159,7 @@
       pointer-events: none;
     }
 
-    /* PC 橫擺卡片時內部旋轉以完整容納直式原畫 */
+    /* PC 橫向時內部圖片旋轉適配 */
     .mode-card-landscape .photo {
       object-fit: contain;
       transform: rotate(90deg) scale(1.78);
@@ -261,7 +255,7 @@
         btnModePhone.classList.add('active');
         btnModeCard.classList.remove('active');
         if (isLandscape) {
-          card.className = 'mode-phone-landscape-locked';
+          card.className = 'mode-phone-landscape';
           btnOrientation.innerText = '🔄 轉直向';
         } else {
           card.className = 'mode-phone-portrait';
@@ -345,30 +339,13 @@
       const clampedX = Math.max(-30, Math.min(30, tiltX));
       const clampedY = Math.max(-20, Math.min(20, tiltY));
 
+      // 只有在 PC 模式下才動態注入 transform 3D 旋轉
       if (currentDevice === 'card') {
         card.style.transform = `rotateY(${clampedX * 0.9}deg) rotateX(${-clampedY * 0.7}deg)`;
       } else if (isLandscape) {
-        // 手遊鎖定橫屏核心演算法：
-        // 偵測目前 iOS 視窗長寬。如果系統是在直向狀態，我們就透過 CSS 逆轉 90 度鋪滿；
-        // 如果系統已經被轉橫了，就自然填滿。這樣不管 iOS 系統怎麼跳，在使用者眼中「永遠都是橫的」！
-        const isSystemPortrait = window.innerHeight > window.innerWidth;
-        if (isSystemPortrait) {
-          card.style.position = 'fixed';
-          card.style.top = '50%';
-          card.style.left = '50%';
-          card.style.width = '100vh';
-          card.style.height = '100vw';
-          card.style.transform = 'translate(-50%, -50%) rotate(90deg)';
-        } else {
-          card.style.position = 'absolute';
-          card.style.top = '0';
-          card.style.left = '0';
-          card.style.width = '100vw';
-          card.style.height = '100vh';
-          card.style.transform = 'none';
-        }
+        // 手機橫向固定 CSS 旋轉，JS 絕不覆寫 transform，防止截斷跑版！
+        card.style.transform = `translate(-50%, -50%) rotate(90deg)`;
       } else {
-        card.style.position = 'relative';
         card.style.transform = 'none';
       }
 
@@ -387,17 +364,12 @@
       lastTiltX = tiltX;
     }
 
-    // 監聽螢幕變動（防止跳轉）
-    window.addEventListener('resize', () => applyTransform(0, 0));
-    window.addEventListener('orientationchange', () => applyTransform(0, 0));
-
     // 陀螺儀
     function handleOrientation(e) {
       let angle = 0;
       if (currentDevice === 'phone' && isLandscape) {
-        // 橫屏模式下主要由 beta 或 gamma 換算傾斜
-        const isSystemPortrait = window.innerHeight > window.innerWidth;
-        angle = isSystemPortrait ? ((e.beta || 0) - 30) : (e.gamma || 0);
+        // 橫屏模式下主要由 beta 控制
+        angle = (e.beta || 0) - 30;
       } else {
         angle = e.gamma || 0;
       }
