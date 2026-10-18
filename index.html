@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>全息光柵雙形態</title>
+  <title>全息光柵雙形態照片</title>
   <style>
     * {
       box-sizing: border-box;
@@ -24,7 +24,7 @@
       perspective: 1200px;
     }
 
-    /* 頂部控制面板：整合模式切換與換圖功能 */
+    /* 頂部控制面板：支援橫向滾動以防手機螢幕過窄擠壓 */
     .header-bar {
       position: absolute;
       top: 16px;
@@ -38,7 +38,14 @@
       border-radius: 999px;
       border: 1px solid rgba(255, 255, 255, 0.15);
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      max-width: 95vw;
+      overflow-x: auto;
+      scrollbar-width: none;
     }
+    .header-bar::-webkit-scrollbar {
+      display: none;
+    }
+
     .ctl-btn {
       background: rgba(255, 255, 255, 0.08);
       border: 1px solid transparent;
@@ -62,6 +69,7 @@
       height: 16px;
       background: rgba(255, 255, 255, 0.2);
       margin: 0 2px;
+      flex-shrink: 0;
     }
 
     /* 核心舞台容器 */
@@ -160,17 +168,18 @@
   </style>
 </head>
 <body>
-  <!-- 隱藏的檔案上傳輸入框 -->
+  <!-- 隱藏的本地圖片輸入框 -->
   <input type="file" id="uploadA" accept="image/*" style="display:none" />
   <input type="file" id="uploadB" accept="image/*" style="display:none" />
 
   <!-- 頂部功能列 -->
   <div class="header-bar">
-    <button class="ctl-btn" id="btn-mode-phone">📱 Phone</button>
-    <button class="ctl-btn" id="btn-mode-card">💻 PC</button>
+    <button class="ctl-btn" id="btn-mode-phone">📱 phone</button>
+    <button class="ctl-btn" id="btn-mode-card">💻 pc</button>
+    <button class="ctl-btn" id="btn-fullscreen">⛶ 全螢幕</button>
     <div class="divider"></div>
-    <button class="ctl-btn" id="btn-upload-a">🖼️ 換形態A</button>
-    <button class="ctl-btn" id="btn-upload-b">🖼️ 換形態B</button>
+    <button class="ctl-btn" id="btn-upload-a">🖼️ 換圖A</button>
+    <button class="ctl-btn" id="btn-upload-b">🖼️ 換圖B</button>
   </div>
 
   <!-- 主舞台 -->
@@ -196,6 +205,7 @@
 
     const btnModePhone = document.getElementById('btn-mode-phone');
     const btnModeCard = document.getElementById('btn-mode-card');
+    const btnFullscreen = document.getElementById('btn-fullscreen');
     const btnUploadA = document.getElementById('btn-upload-a');
     const btnUploadB = document.getElementById('btn-upload-b');
     const uploadA = document.getElementById('uploadA');
@@ -222,7 +232,32 @@
     btnModePhone.addEventListener('click', () => setMode('fullscreen'));
     btnModeCard.addEventListener('click', () => setMode('card'));
 
-    // 自訂上傳圖片功能 (本地預覽，不上傳雲端伺服器)
+    // 全螢幕切換功能
+    btnFullscreen.addEventListener('click', () => {
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        const docEl = document.documentElement;
+        if (docEl.requestFullscreen) {
+          docEl.requestFullscreen().catch(console.error);
+        } else if (docEl.webkitRequestFullscreen) {
+          docEl.webkitRequestFullscreen();
+        }
+        btnFullscreen.innerText = '🗗 退出全螢幕';
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(console.error);
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
+        btnFullscreen.innerText = '⛶ 全螢幕';
+      }
+    });
+
+    // 監聽全螢幕狀態變更，自動同步按鈕文字
+    document.addEventListener('fullscreenchange', () => {
+      btnFullscreen.innerText = document.fullscreenElement ? '🗗 退出全螢幕' : '⛶ 全螢幕';
+    });
+
+    // 本地換圖功能
     btnUploadA.addEventListener('click', () => uploadA.click());
     btnUploadB.addEventListener('click', () => uploadB.click());
 
