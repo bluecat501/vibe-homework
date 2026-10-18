@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#000000" />
   
-  <title>全息光柵雙形態 - 沉浸橫屏版</title>
+  <title>全息雙形態卡片 </title>
   <style>
     * {
       box-sizing: border-box;
@@ -29,34 +29,49 @@
       perspective: 1200px;
     }
 
-    /* 浮動控制列：閒置自動半隱藏，避免遮擋畫面 */
+    /* 頂部功能列：加入向上平滑淡出（-30px 偏移與透明度 0） */
     .header-bar {
       position: absolute;
-      top: 14px;
+      top: calc(env(safe-area-inset-top, 0px) + 12px);
       z-index: 50;
       display: flex;
       align-items: center;
       gap: 6px;
-      background: rgba(15, 20, 35, 0.65);
-      backdrop-filter: blur(12px);
-      padding: 5px 12px;
+      background: rgba(15, 20, 35, 0.72);
+      backdrop-filter: blur(16px);
+      padding: 6px 14px;
       border-radius: 999px;
       border: 1px solid rgba(255, 255, 255, 0.15);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-      transition: opacity 0.4s ease, transform 0.4s ease;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
+      max-width: 95vw;
+      overflow-x: auto;
+      scrollbar-width: none;
+      
+      /* 動畫過渡 */
+      opacity: 1;
+      transform: translateY(0);
+      transition: opacity 0.45s cubic-bezier(0.25, 1, 0.5, 1), 
+                  transform 0.45s cubic-bezier(0.25, 1, 0.5, 1),
+                  visibility 0.45s;
+      visibility: visible;
     }
-    .header-bar.fade-out {
-      opacity: 0;
-      transform: translateY(-20px);
-      pointer-events: none;
+    .header-bar::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* 隱藏狀態 */
+    .header-bar.fade-hidden {
+      opacity: 0 !important;
+      transform: translateY(-30px) !important;
+      visibility: hidden;
     }
 
     .ctl-btn {
       background: rgba(255, 255, 255, 0.08);
       border: 1px solid transparent;
       color: rgba(255, 255, 255, 0.85);
-      padding: 5px 10px;
-      font-size: 11px;
+      padding: 6px 12px;
+      font-size: 12px;
       border-radius: 999px;
       cursor: pointer;
       transition: all 0.25s ease;
@@ -67,35 +82,36 @@
       border-color: rgba(255, 255, 255, 0.4);
       color: #fff;
       font-weight: 600;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
     }
     .divider {
       width: 1px;
-      height: 14px;
+      height: 16px;
       background: rgba(255, 255, 255, 0.2);
       margin: 0 2px;
       flex-shrink: 0;
     }
 
-    /* 舞台容器 */
+    /* 核心舞台容器 */
     #cardContainer {
       position: relative;
       overflow: hidden;
       transform-style: preserve-3d;
       will-change: transform;
-      transition: width 0.3s ease, height 0.3s ease, transform 0.08s ease-out;
+      transition: width 0.3s ease, height 0.3s ease, border-radius 0.3s ease, transform 0.08s ease-out;
     }
 
-    /* 電腦 3D 卡片模式 */
+    /* 電腦 3D 卡片 */
     .mode-3d-card {
-      width: min(84vw, calc(72vh * (9 / 16)));
+      width: min(84vw, calc(68vh * (9 / 16)));
       aspect-ratio: 9 / 16;
-      border-radius: 20px;
+      border-radius: 24px;
       border: 2px solid rgba(255, 255, 255, 0.2);
       box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85),
                   0 0 35px rgba(99, 102, 241, 0.3);
     }
 
-    /* 手機滿版貼屏模式（橫向完全滿版） */
+    /* 手機滿版貼屏模式 */
     .mode-fullscreen {
       width: 100vw !important;
       height: 100vh !important;
@@ -107,15 +123,21 @@
       transform: none !important;
     }
 
-    /* 形態 A / B 圖層 */
-    .layer-a, .layer-b {
+    /* 形態 A（深藍）圖層 */
+    .layer-a {
       position: absolute;
       inset: 0;
       width: 100%;
       height: 100%;
+      z-index: 1;
     }
-    .layer-a { z-index: 1; }
+
+    /* 形態 B（金耀）圖層 */
     .layer-b {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
       z-index: 2;
       opacity: 0;
       will-change: opacity;
@@ -150,7 +172,7 @@
       will-change: transform;
     }
 
-    /* 光柵線條 */
+    /* 光柵垂直紋理 */
     .lenticular-lines {
       position: absolute;
       inset: 0;
@@ -164,51 +186,21 @@
       pointer-events: none;
       z-index: 4;
     }
-
-    /* 手機直立時的橫屏引導提示 */
-    #orientTip {
-      display: none;
-      position: fixed;
-      inset: 0;
-      z-index: 999;
-      background: rgba(0, 0, 0, 0.92);
-      backdrop-filter: blur(8px);
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      color: #fff;
-      font-size: 16px;
-      letter-spacing: 1px;
-    }
-    #orientTip .icon {
-      font-size: 40px;
-      margin-bottom: 12px;
-      animation: rotateHint 1.8s ease-in-out infinite alternate;
-    }
-    @keyframes rotateHint {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(90deg); }
-    }
   </style>
 </head>
 <body>
-  <!-- 橫屏轉向提示 -->
-  <div id="orientTip">
-    <div class="icon">📱 ➔ 🔄</div>
-    <div>請將手機橫向放置以進入純淨無遮模式</div>
-  </div>
-
-  <!-- 隱藏圖片上傳 -->
+  <!-- 隱藏的本地圖片輸入框 -->
   <input type="file" id="uploadA" accept="image/*" style="display:none" />
   <input type="file" id="uploadB" accept="image/*" style="display:none" />
 
-  <!-- 頂部功能列（閒置自動淡出） -->
+  <!-- 頂部功能列 -->
   <div class="header-bar" id="headerBar">
-    <button class="ctl-btn" id="btn-mode-phone">📱 滿版</button>
-    <button class="ctl-btn" id="btn-mode-card">💻 3D卡</button>
+    <button class="ctl-btn" id="btn-mode-phone">📱 phone</button>
+    <button class="ctl-btn" id="btn-mode-card">💻 pc</button>
+    <button class="ctl-btn" id="btn-fullscreen">⛶ 全螢幕</button>
     <div class="divider"></div>
-    <button class="ctl-btn" id="btn-upload-a">換圖A</button>
-    <button class="ctl-btn" id="btn-upload-b">換圖B</button>
+    <button class="ctl-btn" id="btn-upload-a">🖼️ 換圖A</button>
+    <button class="ctl-btn" id="btn-upload-b">🖼️ 換圖B</button>
   </div>
 
   <!-- 主舞台 -->
@@ -232,10 +224,10 @@
     const imgA = document.getElementById('imgA');
     const imgB = document.getElementById('imgB');
     const headerBar = document.getElementById('headerBar');
-    const orientTip = document.getElementById('orientTip');
 
     const btnModePhone = document.getElementById('btn-mode-phone');
     const btnModeCard = document.getElementById('btn-mode-card');
+    const btnFullscreen = document.getElementById('btn-fullscreen');
     const btnUploadA = document.getElementById('btn-upload-a');
     const btnUploadB = document.getElementById('btn-upload-b');
     const uploadA = document.getElementById('uploadA');
@@ -243,18 +235,6 @@
 
     const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     let currentMode = isMobileDevice ? 'fullscreen' : 'card';
-
-    // 檢查直向或橫向
-    function checkOrientation() {
-      if (isMobileDevice && currentMode === 'fullscreen') {
-        const isPortrait = window.innerHeight > window.innerWidth;
-        orientTip.style.display = isPortrait ? 'flex' : 'none';
-      } else {
-        orientTip.style.display = 'none';
-      }
-    }
-    window.addEventListener('resize', checkOrientation);
-    window.addEventListener('orientationchange', checkOrientation);
 
     function setMode(mode) {
       currentMode = mode;
@@ -267,16 +247,40 @@
         btnModeCard.classList.add('active');
         btnModePhone.classList.remove('active');
       }
-      checkOrientation();
       applyTransform(0, 0);
+      showAndResetTimer(); // 切換模式時，重置隱藏計時
     }
 
     btnModePhone.addEventListener('click', () => setMode('fullscreen'));
     btnModeCard.addEventListener('click', () => setMode('card'));
 
-    // 換圖功能
-    btnUploadA.addEventListener('click', () => uploadA.click());
-    btnUploadB.addEventListener('click', () => uploadB.click());
+    // 全螢幕
+    btnFullscreen.addEventListener('click', (e) => {
+      e.stopPropagation(); // 避免點擊按鈕時直接觸發全螢幕切換導致選單立即關閉
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        const docEl = document.documentElement;
+        if (docEl.requestFullscreen) {
+          docEl.requestFullscreen().catch(console.error);
+        } else if (docEl.webkitRequestFullscreen) {
+          docEl.webkitRequestFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(console.error);
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
+      }
+      showAndResetTimer();
+    });
+
+    document.addEventListener('fullscreenchange', () => {
+      btnFullscreen.innerText = document.fullscreenElement ? '🗗 退出全螢幕' : '⛶ 全螢幕';
+    });
+
+    // 換圖
+    btnUploadA.addEventListener('click', (e) => { e.stopPropagation(); uploadA.click(); });
+    btnUploadB.addEventListener('click', (e) => { e.stopPropagation(); uploadB.click(); });
 
     uploadA.addEventListener('change', (e) => {
       const file = e.target.files[0];
@@ -285,6 +289,7 @@
         reader.onload = (evt) => { imgA.src = evt.target.result; };
         reader.readAsDataURL(file);
       }
+      showAndResetTimer();
     });
 
     uploadB.addEventListener('change', (e) => {
@@ -294,22 +299,35 @@
         reader.onload = (evt) => { imgB.src = evt.target.result; };
         reader.readAsDataURL(file);
       }
+      showAndResetTimer();
     });
 
-    // 頂部選單閒置 3 秒自動隱藏，點螢幕重新喚出
-    let hideTimer = null;
-    function resetMenuTimeout() {
-      headerBar.classList.remove('fade-out');
-      clearTimeout(hideTimer);
-      hideTimer = setTimeout(() => {
-        headerBar.classList.add('fade-out');
-      }, 3000);
+    // 3秒自動隱藏與點擊顯現邏輯
+    let inactiveTimer = null;
+    let isMenuVisible = true;
+
+    function hideMenuBar() {
+      headerBar.classList.add('fade-hidden');
+      isMenuVisible = false;
     }
-    window.addEventListener('click', resetMenuTimeout);
-    window.addEventListener('touchstart', resetMenuTimeout);
-    resetMenuTimeout();
+
+    function showAndResetTimer() {
+      headerBar.classList.remove('fade-hidden');
+      isMenuVisible = true;
+      clearTimeout(inactiveTimer);
+      // 3000 毫秒 = 3 秒
+      inactiveTimer = setTimeout(hideMenuBar, 3000);
+    }
+
+    // 當使用者輕觸或點擊螢幕任何一處，立刻喚醒並重新倒數 3 秒
+    window.addEventListener('click', showAndResetTimer);
+    window.addEventListener('touchstart', showAndResetTimer, { passive: true });
+
+    // 初始化自動倒數
+    showAndResetTimer();
 
     // 姿態運算
+    let lastTiltX = 0;
     function applyTransform(tiltX, tiltY = 0) {
       const clampedX = Math.max(-30, Math.min(30, tiltX));
       const clampedY = Math.max(-20, Math.min(20, tiltY));
@@ -325,20 +343,25 @@
 
       const sheenOffset = (blend - 0.5) * 120;
       sheen.style.transform = `translate3d(${sheenOffset}%, 0, 0)`;
+
+      // 智慧偵測：如果使用者有在轉動手機（動作差值大於 1 度），自動延長顯示時間，不急著隱藏
+      if (Math.abs(tiltX - lastTiltX) > 1.2) {
+        if (!isMenuVisible) {
+          showAndResetTimer();
+        } else {
+          // 在轉動時，不斷重置 3 秒計時
+          clearTimeout(inactiveTimer);
+          inactiveTimer = setTimeout(hideMenuBar, 3000);
+        }
+      }
+      lastTiltX = tiltX;
     }
 
-    // 陀螺儀（依手機是直立還是橫躺自動調校感測軸）
+    // 陀螺儀
     function handleOrientation(e) {
-      const isLandscape = window.innerWidth > window.innerHeight;
-      let angle = 0;
-      if (isLandscape) {
-        // 橫屏時，主要的左右傾斜來自 beta 軸
-        angle = e.beta || 0;
-      } else {
-        // 直屏時來自 gamma 軸
-        angle = e.gamma || 0;
-      }
-      applyTransform(angle, 0);
+      const gamma = e.gamma || 0;
+      const beta = e.beta || 0;
+      applyTransform(gamma, beta - 45);
     }
 
     let sensorStarted = false;
@@ -358,6 +381,7 @@
         sensorStarted = true;
       }
     }
+
     window.addEventListener('touchstart', startSensor, { once: true });
     window.addEventListener('click', startSensor, { once: true });
     startSensor();
@@ -366,12 +390,15 @@
       const normX = (e.clientX / window.innerWidth) - 0.5;
       const normY = (e.clientY / window.innerHeight) - 0.5;
       applyTransform(normX * 60, normY * 40);
+      showAndResetTimer(); // 滑鼠移動時也保持喚醒
     });
 
     window.addEventListener('touchmove', (e) => {
       const touch = e.touches[0];
       const normX = (touch.clientX / window.innerWidth) - 0.5;
-      applyTransform(normX * 60, 0);
+      const normY = (touch.clientY / window.innerHeight) - 0.5;
+      applyTransform(normX * 60, normY * 40);
+      showAndResetTimer(); // 手指觸控滑動時也保持喚醒
     }, { passive: true });
 
     setMode(currentMode);
