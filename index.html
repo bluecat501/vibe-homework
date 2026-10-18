@@ -2,8 +2,14 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>全息光柵雙形態照片</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  
+  <!-- iOS 加入主畫面專用：全螢幕與黑色狀態列設定 -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#000000" />
+  
+  <title>全息光柵雙形態</title>
   <style>
     * {
       box-sizing: border-box;
@@ -16,7 +22,7 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: radial-gradient(circle at center, #0e111d 0%, #030408 100%);
+      background-color: #000;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang TC", sans-serif;
       display: flex;
       justify-content: center;
@@ -24,10 +30,10 @@
       perspective: 1200px;
     }
 
-    /* 頂部控制面板：支援橫向滾動以防手機螢幕過窄擠壓 */
+    /* 頂部選單：避開動態島/瀏海安全區 */
     .header-bar {
       position: absolute;
-      top: 16px;
+      top: calc(env(safe-area-inset-top, 0px) + 12px);
       z-index: 50;
       display: flex;
       align-items: center;
@@ -91,10 +97,11 @@
                   0 0 35px rgba(99, 102, 241, 0.3);
     }
 
-    /* 模式 2：手機滿版貼屏模式 */
+    /* 模式 2：手機滿版貼屏（徹底填滿頂部與底部安全區） */
     .mode-fullscreen {
       width: 100vw !important;
       height: 100vh !important;
+      height: 100dvh !important;
       aspect-ratio: auto !important;
       border-radius: 0 !important;
       border: none !important;
@@ -211,7 +218,6 @@
     const uploadA = document.getElementById('uploadA');
     const uploadB = document.getElementById('uploadB');
 
-    // 依設備預設模式
     const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     let currentMode = isMobileDevice ? 'fullscreen' : 'card';
 
@@ -232,7 +238,7 @@
     btnModePhone.addEventListener('click', () => setMode('fullscreen'));
     btnModeCard.addEventListener('click', () => setMode('card'));
 
-    // 全螢幕切換功能
+    // 全螢幕切換
     btnFullscreen.addEventListener('click', () => {
       if (!document.fullscreenElement && !document.webkitFullscreenElement) {
         const docEl = document.documentElement;
@@ -252,12 +258,11 @@
       }
     });
 
-    // 監聽全螢幕狀態變更，自動同步按鈕文字
     document.addEventListener('fullscreenchange', () => {
       btnFullscreen.innerText = document.fullscreenElement ? '🗗 退出全螢幕' : '⛶ 全螢幕';
     });
 
-    // 本地換圖功能
+    // 換圖功能
     btnUploadA.addEventListener('click', () => uploadA.click());
     btnUploadB.addEventListener('click', () => uploadB.click());
 
@@ -279,7 +284,7 @@
       }
     });
 
-    // 姿態與光柵過渡
+    // 姿態運算
     function applyTransform(tiltX, tiltY = 0) {
       const clampedX = Math.max(-30, Math.min(30, tiltX));
       const clampedY = Math.max(-20, Math.min(20, tiltY));
@@ -290,23 +295,20 @@
         card.style.transform = 'none';
       }
 
-      // 形態 A/B 漸變權重
       const blend = Math.max(0, Math.min(1, (clampedX + 18) / 36));
       layerB.style.opacity = blend.toFixed(3);
 
-      // 全息彩虹流光位移
       const sheenOffset = (blend - 0.5) * 120;
       sheen.style.transform = `translate3d(${sheenOffset}%, 0, 0)`;
     }
 
-    // 陀螺儀監聽
+    // 陀螺儀
     function handleOrientation(e) {
       const gamma = e.gamma || 0;
       const beta = e.beta || 0;
       applyTransform(gamma, beta - 45);
     }
 
-    // 自動偵測或輕觸啟動陀螺儀
     let sensorStarted = false;
     function startSensor() {
       if (sensorStarted) return;
@@ -329,7 +331,6 @@
     window.addEventListener('click', startSensor, { once: true });
     startSensor();
 
-    // 電腦滑鼠與觸控拖曳監聽
     window.addEventListener('mousemove', (e) => {
       const normX = (e.clientX / window.innerWidth) - 0.5;
       const normY = (e.clientY / window.innerHeight) - 0.5;
@@ -343,7 +344,6 @@
       applyTransform(normX * 60, normY * 40);
     }, { passive: true });
 
-    // 初始化模式
     setMode(currentMode);
   </script>
 </body>
